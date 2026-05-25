@@ -10,6 +10,18 @@ import './App.css';
 const COMPARE_MIN = 2;
 const COMPARE_MAX = 4;
 
+const GEN_GRADIENTS: Record<number, string> = {
+  1: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',  // Kanto: deep blue
+  2: 'linear-gradient(135deg, #1a2e2e 0%, #0f3434 50%, #0a2a2a 100%)',  // Johto: dark teal
+  3: 'linear-gradient(135deg, #2e1a1a 0%, #340f1a 50%, #2a0a15 100%)',  // Hoenn: crimson
+  4: 'linear-gradient(135deg, #2e2e1a 0%, #34340f 50%, #2a2a0a 100%)',  // Sinnoh: gold
+  5: 'linear-gradient(135deg, #1a1a2e 0%, #290f34 50%, #200a2a 100%)',  // Unova: purple
+  6: 'linear-gradient(135deg, #1a2e1a 0%, #0f340f 50%, #0a2a0a 100%)',  // Kalos: emerald
+  7: 'linear-gradient(135deg, #2e1a2e 0%, #340f34 50%, #2a0a2a 100%)',  // Alola: magenta
+  8: 'linear-gradient(135deg, #1a2a1a 0%, #0f2a0f 50%, #0a200a 100%)',  // Galar: forest
+  9: 'linear-gradient(135deg, #2e2e2e 0%, #2a2a2a 50%, #202020 100%)',  // Paldea: slate
+};
+
 function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [allSpecies, setAllSpecies] = useState<GenerationPokemonSpecies[]>([]);
@@ -25,12 +37,30 @@ function App() {
   const [compareSelectedIds, setCompareSelectedIds] = useState<Set<number>>(new Set());
   const [compareSelected, setCompareSelected] = useState<Pokemon[]>([]);
   const [compareViewActive, setCompareViewActive] = useState(false);
+  const [pendingSpecies, setPendingSpecies] = useState<GenerationPokemonSpecies[] | null>(null);
+
+  // When loading starts, clear old data (defers to next render)
+  useEffect(() => {
+    if (loading) {
+      setAllSpecies([]);
+      setFilteredSpecies([]);
+    }
+  }, [loading]);
+
+  // When data arrives while loading, stage it
+  useEffect(() => {
+    if (pendingSpecies && loading) {
+      setAllSpecies(pendingSpecies);
+      setFilteredSpecies(pendingSpecies);
+      setPendingSpecies(null);
+      setLoading(false);
+    }
+  }, [pendingSpecies, loading]);
+
   // Fetch only species list (no details)
   const fetchGenerationSpecies = useCallback(async (generation: number) => {
     setLoading(true);
     setError(null);
-    setAllSpecies([]);
-    setFilteredSpecies([]);
 
     try {
       const genResponse = await fetch(
@@ -44,11 +74,9 @@ function App() {
         const idB = parseInt(b.url.match(/\/(\d+)\//)?.[1] || '0', 10);
         return idA - idB;
       });
-      setAllSpecies(species);
-      setFilteredSpecies(species);
+      setPendingSpecies(species);
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   }, []);
@@ -57,6 +85,12 @@ function App() {
   useEffect(() => {
     fetchGenerationSpecies(1);
   }, [fetchGenerationSpecies]);
+
+  // Update background gradient on gen change
+  useEffect(() => {
+    const gradient = GEN_GRADIENTS[currentGeneration] || GEN_GRADIENTS[1];
+    document.body.style.background = gradient;
+  }, [currentGeneration]);
 
   // Handle generation change — preserve compare state for cross-gen
   const handleGenerationChange = (generation: number) => {
@@ -183,35 +217,6 @@ function App() {
     setCompareSelected([]);
   };
 
-  if (loading) {
-    return (
-      <div className="app">
-        <header className="header">
-          <h1><span className="pokeball-icon"></span> Pokédex</h1>
-          <p>Explore the world of Pokémon</p>
-        </header>
-        <GenerationTabs
-          currentGeneration={currentGeneration}
-          onGenerationChange={handleGenerationChange}
-          isLoading={true}
-        />
-        <div className="pokemon-grid">
-          {[...Array(12)].map((_, index) => (
-            <div key={index} className="pokemon-card">
-              <Skeleton
-                width="120px"
-                height="120px"
-                className="pokemon-image"
-              />
-              <Skeleton width="80%" height="20px" />
-              <Skeleton width="60%" height="16px" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="app">
@@ -219,6 +224,8 @@ function App() {
       </div>
     );
   }
+
+
 
   // Show comparison view
   if (compareViewActive && compareSelected.length >= COMPARE_MIN) {
@@ -244,6 +251,7 @@ function App() {
         <button
           className={`compare-toggle-btn${compareMode ? ' active' : ''}`}
           onClick={toggleCompareMode}
+          disabled={loading}
           aria-label="Toggle comparison mode"
         >
           ⚔️ Compare
@@ -329,24 +337,45 @@ function App() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               aria-label="Search Pokémon by name or ID"
+              disabled={loading}
             />
             <button
               type="submit"
               className="search-btn"
               aria-label="Search Pokémon"
+              disabled={loading}
             >
               Search
             </button>
           </form>
 
-          <PokemonList
-            speciesList={filteredSpecies}
-            onSelect={handleSelectSpecies}
-            onCompareToggle={toggleCompareSelection}
-            compareSelectedIds={compareSelectedIds}
-            isCompareMode={compareMode}
-            compareMaxReached={compareSelectedIds.size >= COMPARE_MAX}
-          />
+          <div className="grid-container">
+            <div className={`grid-layer skeleton-layer ${loading ? 'visible' : 'hidden'}`}>
+              <div className="pokemon-grid">
+                {[...Array(12)].map((_, index) => (
+                  <div key={index} className="pokemon-card">
+                    <Skeleton
+                      width="120px"
+                      height="120px"
+                      className="pokemon-image"
+                    />
+                    <Skeleton width="80%" height="20px" />
+                    <Skeleton width="60%" height="16px" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className={`grid-layer list-layer ${loading ? 'hidden' : 'visible'}`}>
+              <PokemonList
+                speciesList={filteredSpecies}
+                onSelect={handleSelectSpecies}
+                onCompareToggle={toggleCompareSelection}
+                compareSelectedIds={compareSelectedIds}
+                isCompareMode={compareMode}
+                compareMaxReached={compareSelectedIds.size >= COMPARE_MAX}
+              />
+            </div>
+          </div>
         </>
       )}
     </div>

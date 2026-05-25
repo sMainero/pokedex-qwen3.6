@@ -151,6 +151,12 @@
   box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
 }
 
+.search-input:disabled,
+.search-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .search-btn {
   padding: 15px 30px;
   font-size: 1rem;
@@ -242,7 +248,7 @@
   width: 120px;
   height: 120px;
   object-fit: contain;
-  margin-bottom: 15px;
+  margin: 0 auto 15px;
   filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.3));
 }
 
@@ -477,6 +483,39 @@
   background-size: 200% 100%;
   animation: skeleton-loading 1.5s infinite;
   border-radius: 8px;
+  margin: 0 auto;
+  display: block;
+}
+
+/* Cross-fade layers */
+.grid-container {
+  position: relative;
+  min-height: 300px;
+}
+
+.grid-layer {
+  transition: opacity 0.3s ease;
+}
+
+.grid-layer.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.grid-layer.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.skeleton-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.list-layer {
+  position: relative;
 }
 
 @keyframes skeleton-loading {
@@ -487,3 +526,5 @@
     background-position: -200% 0;
   }
 }
+
+

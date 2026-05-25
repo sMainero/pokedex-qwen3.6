@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import PokemonDetails from './PokemonDetails';
@@ -8,16 +7,19 @@ const mockPokemon: Pokemon = {
   id: 1,
   name: 'bulbasaur',
   url: 'https://pokeapi.co/api/v2/pokemon/1',
-  types: [{ type: { name: 'grass' } }, { type: { name: 'poison' } }],
-  stats: [
-    { base_stat: 45, stat: { name: 'hp' } },
-    { base_stat: 49, stat: { name: 'attack' } },
-    { base_stat: 49, stat: { name: 'defense' } },
-    { base_stat: 65, stat: { name: 'sp-atk' } },
-    { base_stat: 65, stat: { name: 'sp-def' } },
-    { base_stat: 45, stat: { name: 'speed' } },
+  types: [
+    { slot: 1, type: { name: 'grass', url: 'https://pokeapi.co/api/v2/type/12' } },
+    { slot: 2, type: { name: 'poison', url: 'https://pokeapi.co/api/v2/type/4' } },
   ],
-  abilities: [{ ability: { name: 'overgrow' } }],
+  stats: [
+    { base_stat: 45, stat: { name: 'hp', url: 'https://pokeapi.co/api/v2/stat/1' } },
+    { base_stat: 49, stat: { name: 'attack', url: 'https://pokeapi.co/api/v2/stat/2' } },
+    { base_stat: 49, stat: { name: 'defense', url: 'https://pokeapi.co/api/v2/stat/3' } },
+    { base_stat: 65, stat: { name: 'sp-atk', url: 'https://pokeapi.co/api/v2/stat/4' } },
+    { base_stat: 65, stat: { name: 'sp-def', url: 'https://pokeapi.co/api/v2/stat/5' } },
+    { base_stat: 45, stat: { name: 'speed', url: 'https://pokeapi.co/api/v2/stat/6' } },
+  ],
+  abilities: [{ ability: { name: 'overgrow', url: 'https://pokeapi.co/api/v2/ability/65' } }],
   height: 7,
   weight: 69,
   base_experience: 60,
