@@ -1,6 +1,6 @@
-# AGENTS.md — Pokedex React App
+# copilot-instructions.md — Pokedex React App
 
-> **MANDATORY SYNC RULE:** This file and `copilot-instructions.md` are mirrors. Any agent that modifies one MUST update the other identically. Keep them in sync on every change. If you edit code, architecture, commands, patterns, or any section below — update both files.
+> **MANDATORY SYNC RULE:** This file and `AGENTS.md` are mirrors. Any agent that modifies one MUST update the other identically. Keep them in sync on every change. If you edit code, architecture, commands, patterns, or any section below — update both files.
 
 ---
 

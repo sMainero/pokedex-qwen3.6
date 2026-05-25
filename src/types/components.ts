@@ -5,9 +5,10 @@ import { Pokemon, GenerationPokemonSpecies } from './pokemon';
 export interface PokemonListProps {
   speciesList: GenerationPokemonSpecies[];
   onSelect: (species: GenerationPokemonSpecies) => void;
-  onCompare?: (species: GenerationPokemonSpecies) => void;
-  compareSelected?: Set<number>;
+  onCompareToggle?: (species: GenerationPokemonSpecies) => void;
+  compareSelectedIds?: Set<number>;
   isCompareMode?: boolean;
+  compareMaxReached?: boolean;
 }
 
 export interface PokemonDetailsProps {
@@ -17,8 +18,7 @@ export interface PokemonDetailsProps {
 }
 
 export interface PokemonCompareProps {
-  pokemonA: Pokemon;
-  pokemonB: Pokemon;
+  pokemonList: Pokemon[];
   onRemove: (pokemon: Pokemon) => void;
   onBack: () => void;
 }

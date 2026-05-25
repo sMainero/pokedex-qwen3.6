@@ -7,6 +7,9 @@ import Skeleton from './components/Skeleton';
 import { Pokemon, GenerationResponse, GenerationPokemonSpecies } from './types/pokemon';
 import './App.css';
 
+const COMPARE_MIN = 2;
+const COMPARE_MAX = 4;
+
 function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [allSpecies, setAllSpecies] = useState<GenerationPokemonSpecies[]>([]);
@@ -20,8 +23,8 @@ function App() {
   // Comparison state
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelectedIds, setCompareSelectedIds] = useState<Set<number>>(new Set());
-  const [comparePokemon, setComparePokemon] = useState<Pokemon[]>([]);
-
+  const [compareSelected, setCompareSelected] = useState<Pokemon[]>([]);
+  const [compareViewActive, setCompareViewActive] = useState(false);
   // Fetch only species list (no details)
   const fetchGenerationSpecies = useCallback(async (generation: number) => {
     setLoading(true);
@@ -55,15 +58,13 @@ function App() {
     fetchGenerationSpecies(1);
   }, [fetchGenerationSpecies]);
 
-  // Handle generation change
+  // Handle generation change — preserve compare state for cross-gen
   const handleGenerationChange = (generation: number) => {
     if (generation === currentGeneration) return;
     setCurrentGeneration(generation);
     setSelectedPokemon(null);
     setSearchTerm('');
-    setCompareMode(false);
-    setCompareSelectedIds(new Set());
-    setComparePokemon([]);
+    // Do NOT clear compare state — cross-gen comparison
     fetchGenerationSpecies(generation);
   };
 
@@ -86,7 +87,6 @@ function App() {
   };
 
   const handleSelectSpecies = async (species: GenerationPokemonSpecies) => {
-    // In compare mode, only handle via toggleCompareSelection
     if (compareMode) return;
 
     setDetailLoading(true);
@@ -107,81 +107,80 @@ function App() {
     setSelectedPokemon(null);
   };
 
-  // Comparison handlers
+  // Toggle compare mode — entering preserves prior selection
   const toggleCompareMode = () => {
     if (compareMode) {
-      // If 2 selected, fetch and show comparison
-      if (compareSelectedIds.size === 2) {
-        const selectedSpecies = allSpecies.filter(s => {
-          const id = parseInt(s.url.match(/\/(\d+)\//)?.[1] || '0', 10);
-          return compareSelectedIds.has(id);
-        });
-        fetchComparePokemon(selectedSpecies);
-      } else {
-        // Exit compare mode without comparing
-        setCompareMode(false);
-        setCompareSelectedIds(new Set());
-      }
+      stopSelecting();
     } else {
       setCompareMode(true);
-      setCompareSelectedIds(new Set());
-      setComparePokemon([]);
       setSelectedPokemon(null);
     }
   };
 
-  const toggleCompareSelection = (species: GenerationPokemonSpecies) => {
+  // Add/remove pokemon from comparison selection
+  const toggleCompareSelection = async (species: GenerationPokemonSpecies) => {
     const id = parseInt(species.url.match(/\/(\d+)\//)?.[1] || '0', 10);
-    const newSet = new Set(compareSelectedIds);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else if (newSet.size < 2) {
-      newSet.add(id);
-    }
-    setCompareSelectedIds(newSet);
+    const newIds = new Set(compareSelectedIds);
 
-    // Auto-fetch when 2 selected
-    if (newSet.size === 2) {
-      const selectedSpecies = allSpecies.filter(s => {
-        const sid = parseInt(s.url.match(/\/(\d+)\//)?.[1] || '0', 10);
-        return newSet.has(sid);
-      });
-      fetchComparePokemon(selectedSpecies);
-    }
-  };
+    if (newIds.has(id)) {
+      // Remove from selection
+      newIds.delete(id);
+      setCompareSelectedIds(newIds);
+      setCompareSelected(prev => prev.filter(p => p.id !== id));
+    } else if (newIds.size < COMPARE_MAX) {
+      // Add — fetch detail first
+      newIds.add(id);
+      setCompareSelectedIds(newIds);
 
-  const fetchComparePokemon = async (speciesList: GenerationPokemonSpecies[]) => {
-    try {
-      const promises = speciesList.map(async (species) => {
+      try {
         const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${species.name}`);
         if (!res.ok) throw new Error(`Failed to fetch ${species.name}`);
-        return res.json() as Promise<Pokemon>;
-      });
-      const results = await Promise.all(promises);
-      setComparePokemon(results);
-    } catch (err: any) {
-      setError(err.message);
+        const data: Pokemon = await res.json();
+        setCompareSelected(prev => [...prev, data]);
+      } catch (err: any) {
+        setError(err.message);
+        newIds.delete(id);
+        setCompareSelectedIds(newIds);
+      }
     }
   };
 
+  // Start comparison — show comparison view
+  const startComparison = () => {
+    if (compareSelected.length >= COMPARE_MIN) {
+      setCompareViewActive(true);
+    }
+  };
+
+  // Stop selecting — clear selection, exit compare mode
+  const stopSelecting = () => {
+    setCompareMode(false);
+    setCompareSelectedIds(new Set());
+    setCompareSelected([]);
+    setCompareViewActive(false);
+  };
+
+  // Remove single pokemon from comparison view
   const handleRemoveComparePokemon = (pokemon: Pokemon) => {
-    const newSet = new Set(compareSelectedIds);
-    newSet.delete(pokemon.id);
-    setCompareSelectedIds(newSet);
-    const updated = comparePokemon.filter(p => p.id !== pokemon.id);
-    setComparePokemon(updated);
-    // If less than 2, exit compare mode
-    if (newSet.size < 2) {
-      setCompareMode(false);
+    const newIds = new Set(compareSelectedIds);
+    newIds.delete(pokemon.id);
+    setCompareSelectedIds(newIds);
+    const updated = compareSelected.filter(p => p.id !== pokemon.id);
+    setCompareSelected(updated);
+
+    // If below minimum, exit comparison view
+    if (newIds.size < COMPARE_MIN) {
+      setCompareViewActive(false);
       setCompareSelectedIds(new Set());
-      setComparePokemon([]);
+      setCompareSelected([]);
     }
   };
 
   const exitCompare = () => {
+    setCompareViewActive(false);
     setCompareMode(false);
     setCompareSelectedIds(new Set());
-    setComparePokemon([]);
+    setCompareSelected([]);
   };
 
   if (loading) {
@@ -221,13 +220,12 @@ function App() {
     );
   }
 
-  // Show comparison view when 2 pokemon fetched
-  if (comparePokemon.length === 2 && compareSelectedIds.size === 2) {
+  // Show comparison view
+  if (compareViewActive && compareSelected.length >= COMPARE_MIN) {
     return (
       <div className="app" id="main-content">
         <PokemonCompare
-          pokemonA={comparePokemon[0]}
-          pokemonB={comparePokemon[1]}
+          pokemonList={compareSelected}
           onRemove={handleRemoveComparePokemon}
           onBack={exitCompare}
         />
@@ -263,8 +261,49 @@ function App() {
 
       {compareMode && (
         <div className="compare-mode-bar">
-          <p>Select 2 Pokémon to compare {compareSelectedIds.size}/2</p>
-          <button className="cancel-compare-btn" onClick={exitCompare} aria-label="Cancel comparison">✕</button>
+          <div className="compare-chips-container">
+            {compareSelected.map(p => (
+              <span key={p.id} className="compare-chip">
+                <img
+                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png`}
+                  alt={p.name}
+                  className="compare-chip-sprite"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/images/pokemon-placeholder.png'; }}
+                />
+                {p.name} #{p.id.toString().padStart(3, '0')}
+                <button
+                  className="compare-chip-remove"
+                  onClick={() => {
+                    const newIds = new Set(compareSelectedIds);
+                    newIds.delete(p.id);
+                    setCompareSelectedIds(newIds);
+                    setCompareSelected(prev => prev.filter(x => x.id !== p.id));
+                  }}
+                  aria-label={`Remove ${p.name} from comparison`}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="compare-actions">
+            <p>{compareSelected.length}/{COMPARE_MAX} selected (min {COMPARE_MIN})</p>
+            <button
+              className="start-compare-btn"
+              onClick={startComparison}
+              disabled={compareSelected.length < COMPARE_MIN}
+              aria-label="Start comparison"
+            >
+              Start Comparison
+            </button>
+            <button
+              className="stop-selecting-btn"
+              onClick={stopSelecting}
+              aria-label="Stop selecting Pokémon"
+            >
+              Stop Selecting
+            </button>
+          </div>
         </div>
       )}
 
@@ -303,9 +342,10 @@ function App() {
           <PokemonList
             speciesList={filteredSpecies}
             onSelect={handleSelectSpecies}
-            onCompare={toggleCompareSelection}
-            compareSelected={compareSelectedIds}
+            onCompareToggle={toggleCompareSelection}
+            compareSelectedIds={compareSelectedIds}
             isCompareMode={compareMode}
+            compareMaxReached={compareSelectedIds.size >= COMPARE_MAX}
           />
         </>
       )}

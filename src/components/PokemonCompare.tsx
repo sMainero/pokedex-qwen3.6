@@ -1,14 +1,20 @@
+import React, { useState } from 'react';
 import { Pokemon } from '../types/pokemon';
+import ClashOverlay from './ClashOverlay';
 import './PokemonCompare.css';
 
 interface PokemonCompareProps {
-  pokemonA: Pokemon;
-  pokemonB: Pokemon;
+  pokemonList: Pokemon[];
   onRemove: (pokemon: Pokemon) => void;
   onBack: () => void;
 }
 
-function PokemonCompare({ pokemonA, pokemonB, onRemove, onBack }: PokemonCompareProps) {
+function PokemonCompare({ pokemonList, onRemove, onBack }: PokemonCompareProps) {
+  const [showClash, setShowClash] = useState(true);
+
+  const handleClashComplete = () => {
+    setShowClash(false);
+  };
   const statLabels = ['HP', 'Attack', 'Defense', 'Sp. Atk', 'Sp. Def', 'Speed'];
 
   const getStatColor = (value: number) => {
@@ -21,23 +27,13 @@ function PokemonCompare({ pokemonA, pokemonB, onRemove, onBack }: PokemonCompare
 
   const getStatPercent = (value: number) => Math.min((value / 255) * 100, 100);
 
-  // Compare a numeric stat between two pokemon
-  const compareStat = (index: number) => {
-    const valA = pokemonA.stats?.[index]?.base_stat || 0;
-    const valB = pokemonB.stats?.[index]?.base_stat || 0;
-    if (valA > valB) return 'a';
-    if (valB > valA) return 'b';
-    return 'tie';
+  // Find max value for a stat index across all pokemon
+  const getMaxStat = (index: number) => {
+    return Math.max(...pokemonList.map(p => p.stats?.[index]?.base_stat || 0));
   };
 
-  const compareNumbers = (valA: number, valB: number) => {
-    if (valA > valB) return 'a';
-    if (valB > valA) return 'b';
-    return 'tie';
-  };
-
-  const totalStatsA = pokemonA.stats?.reduce((sum, s) => sum + s.base_stat, 0) || 0;
-  const totalStatsB = pokemonB.stats?.reduce((sum, s) => sum + s.base_stat, 0) || 0;
+  // Find max for numeric comparison
+  const getMaxNumber = (values: number[]) => Math.max(...values);
 
   const renderSprite = (pokemon: Pokemon) => (
     <div className="compare-sprite">
@@ -49,153 +45,207 @@ function PokemonCompare({ pokemonA, pokemonB, onRemove, onBack }: PokemonCompare
     </div>
   );
 
-  const renderStatRow = (index: number) => {
-    const valA = pokemonA.stats?.[index]?.base_stat || 0;
-    const valB = pokemonB.stats?.[index]?.base_stat || 0;
-    const winner = compareStat(index);
+  const renderCompareColumn = (pokemon: Pokemon) => (
+    <div className="compare-column">
+      {renderSprite(pokemon)}
+      <h3>
+        {pokemon.name.toUpperCase()}{' '}
+        <span className="compare-id">#{pokemon.id.toString().padStart(3, '0')}</span>
+      </h3>
+      <button
+        className="remove-btn"
+        onClick={() => onRemove(pokemon)}
+        aria-label={`Remove ${pokemon.name}`}
+      >
+        ✕ Remove
+      </button>
+    </div>
+  );
+
+  const renderVsSeparator = () => <div className="compare-vs">VS</div>;
+
+  // Render types row
+  const renderTypesRow = () => (
+    <div className="compare-section">
+      <h3>Types</h3>
+      <div className={`compare-row compare-row-${pokemonList.length}`}>
+        {pokemonList.map(p => (
+          <div key={p.id} className="compare-cell">
+            <div className="types-container">
+              {p.types?.map(t => (
+                <span key={t.type.name} className={`pokemon-type type-${t.type.name}`}>
+                  {t.type.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Render physical attributes
+  const renderPhysicalSection = () => {
+    const rows = [
+      {
+        label: 'Height',
+        getValue: (p: Pokemon) => p.height ? `${(p.height / 10).toFixed(1)} m` : '—',
+        getNumeric: (p: Pokemon) => p.height ?? -1,
+      },
+      {
+        label: 'Weight',
+        getValue: (p: Pokemon) => p.weight ? `${(p.weight / 10).toFixed(1)} kg` : '—',
+        getNumeric: (p: Pokemon) => p.weight ?? -1,
+      },
+      {
+        label: 'Base Exp',
+        getValue: (p: Pokemon) => p.base_experience ?? '—',
+        getNumeric: (p: Pokemon) => p.base_experience ?? -1,
+      },
+    ];
 
     return (
-      <div className="compare-stat-row" key={statLabels[index]}>
-        <div
-          className={`compare-stat-cell cell-a ${winner === 'a' ? 'winner' : winner === 'tie' ? 'tie' : ''}`}
-        >
-          <span className="stat-val">{valA}</span>
-          <div className="stat-bar-mini">
-            <div
-              className="stat-fill-mini"
-              style={{
-                width: `${getStatPercent(valA)}%`,
-                backgroundColor: getStatColor(valA),
-              }}
-            />
-          </div>
-        </div>
-        <div className="compare-stat-label">{statLabels[index]}</div>
-        <div
-          className={`compare-stat-cell cell-b ${winner === 'b' ? 'winner' : winner === 'tie' ? 'tie' : ''}`}
-        >
-          <span className="stat-val">{valB}</span>
-          <div className="stat-bar-mini">
-            <div
-              className="stat-fill-mini"
-              style={{
-                width: `${getStatPercent(valB)}%`,
-                backgroundColor: getStatColor(valB),
-              }}
-            />
-          </div>
-        </div>
+      <div className="compare-section">
+        <h3>Physical</h3>
+        {rows.map(row => {
+          const values = pokemonList.map(row.getNumeric);
+          const maxVal = getMaxNumber(values);
+          return (
+            <div key={row.label} className={`compare-row compare-row-${pokemonList.length}`}>
+              {pokemonList.map(p => {
+                const val = row.getNumeric(p);
+                const isWinner = val === maxVal && maxVal > 0;
+                const isTie = isWinner && values.filter(v => v === maxVal).length > 1;
+                return (
+                  <div
+                    key={p.id}
+                    className={`compare-cell ${isWinner ? 'winner' : ''} ${isTie ? 'tie' : ''}`}
+                  >
+                    {row.getValue(p)}
+                  </div>
+                );
+              })}
+              <div className="compare-label">{row.label}</div>
+            </div>
+          );
+        })}
       </div>
     );
   };
 
-  const renderCompareRow = (label: string, valA: string | number, valB: string | number) => {
-    const winner = typeof valA === 'number' && typeof valB === 'number'
-      ? compareNumbers(valA, valB)
-      : 'neutral';
+  // Render abilities
+  const renderAbilitiesSection = () => (
+    <div className="compare-section">
+      <h3>Abilities</h3>
+      <div className={`compare-row compare-row-${pokemonList.length}`}>
+        {pokemonList.map(p => (
+          <div key={p.id} className="compare-cell abilities-cell">
+            {p.abilities?.map(a => (
+              <span key={a.ability.name} className="ability-tag">
+                {a.ability.name.replace('-', ' ')}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Render stats
+  const renderStatsSection = () => {
+    const totals = pokemonList.map(
+      p => p.stats?.reduce((sum, s) => sum + s.base_stat, 0) || 0,
+    );
+    const maxTotal = getMaxNumber(totals);
 
     return (
-      <div className="compare-row">
-        <div className={`compare-cell cell-a ${winner === 'a' ? 'winner' : winner === 'tie' ? 'tie' : ''}`}>{valA}</div>
-        <div className="compare-label">{label}</div>
-        <div className={`compare-cell cell-b ${winner === 'b' ? 'winner' : winner === 'tie' ? 'tie' : ''}`}>{valB}</div>
+      <div className="compare-section">
+        <h3>Base Stats</h3>
+
+        {/* Total row */}
+        <div className={`compare-stats-header compare-row-${pokemonList.length}`}>
+          {pokemonList.map((p, i) => {
+            const isWinner = totals[i] === maxTotal;
+            const isTie = isWinner && totals.filter(t => t === maxTotal).length > 1;
+            return (
+              <div key={p.id} className={`compare-stat-cell ${isWinner ? 'winner' : ''} ${isTie ? 'tie' : ''}`}>
+                <span className="stat-val">{totals[i]}</span>
+                <div className="stat-bar-mini">
+                  <div
+                    className="stat-fill-mini"
+                    style={{ width: `${getStatPercent(totals[i])}%`, backgroundColor: '#e94560' }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          <div className="compare-stat-label">Total</div>
+        </div>
+
+        {/* Individual stat rows */}
+        {statLabels.map((label, index) => {
+          const maxStat = getMaxStat(index);
+          const values = pokemonList.map(p => p.stats?.[index]?.base_stat || 0);
+          const tieCount = values.filter(v => v === maxStat).length;
+
+          return (
+            <div key={label} className={`compare-stat-row compare-row-${pokemonList.length}`}>
+              {pokemonList.map((p) => {
+                const val = p.stats?.[index]?.base_stat || 0;
+                const isWinner = val === maxStat;
+                const isTie = isWinner && tieCount > 1;
+                return (
+                  <div key={p.id} className={`compare-stat-cell ${isWinner ? 'winner' : ''} ${isTie ? 'tie' : ''}`}>
+                    <span className="stat-val">{val}</span>
+                    <div className="stat-bar-mini">
+                      <div
+                        className="stat-fill-mini"
+                        style={{
+                          width: `${getStatPercent(val)}%`,
+                          backgroundColor: getStatColor(val),
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="compare-stat-label">{label}</div>
+            </div>
+          );
+        })}
       </div>
     );
   };
 
   return (
     <div className="pokemon-compare">
+      {showClash && (
+        <ClashOverlay
+          pokemonList={pokemonList}
+          onComplete={handleClashComplete}
+        />
+      )}
       <div className="compare-header">
         <button className="back-btn" onClick={onBack} aria-label="Back to list">
           ← Back to List
         </button>
-        <h2>Pokémon Comparison</h2>
+        <h2>Pokémon Comparison ({pokemonList.length})</h2>
       </div>
 
       {/* Sprite row */}
       <div className="compare-sprites-row">
-        <div className="compare-column col-a">
-          {renderSprite(pokemonA)}
-          <h3>{pokemonA.name.toUpperCase()} <span className="compare-id">#{pokemonA.id.toString().padStart(3, '0')}</span></h3>
-          <button className="remove-btn" onClick={() => onRemove(pokemonA)} aria-label={`Remove ${pokemonA.name}`}>✕ Remove</button>
-        </div>
-        <div className="compare-vs">VS</div>
-        <div className="compare-column col-b">
-          {renderSprite(pokemonB)}
-          <h3>{pokemonB.name.toUpperCase()} <span className="compare-id">#{pokemonB.id.toString().padStart(3, '0')}</span></h3>
-          <button className="remove-btn" onClick={() => onRemove(pokemonB)} aria-label={`Remove ${pokemonB.name}`}>✕ Remove</button>
-        </div>
+        {pokemonList.map((p, idx) => (
+          <React.Fragment key={p.id}>
+            {renderCompareColumn(p)}
+            {idx < pokemonList.length - 1 && renderVsSeparator()}
+          </React.Fragment>
+        ))}
       </div>
 
-      {/* Types */}
-      <div className="compare-section">
-        <h3>Types</h3>
-        <div className="compare-row">
-          <div className="compare-cell cell-a">
-            <div className="types-container">
-              {pokemonA.types?.map(t => (
-                <span key={t.type.name} className={`pokemon-type type-${t.type.name}`}>{t.type.name}</span>
-              ))}
-            </div>
-          </div>
-          <div className="compare-label">Types</div>
-          <div className="compare-cell cell-b">
-            <div className="types-container">
-              {pokemonB.types?.map(t => (
-                <span key={t.type.name} className={`pokemon-type type-${t.type.name}`}>{t.type.name}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Physical attributes */}
-      <div className="compare-section">
-        <h3>Physical</h3>
-        {renderCompareRow('Height', pokemonA.height ? `${(pokemonA.height / 10).toFixed(1)} m` : '—', pokemonB.height ? `${(pokemonB.height / 10).toFixed(1)} m` : '—')}
-        {renderCompareRow('Weight', pokemonA.weight ? `${(pokemonA.weight / 10).toFixed(1)} kg` : '—', pokemonB.weight ? `${(pokemonB.weight / 10).toFixed(1)} kg` : '—')}
-        {renderCompareRow('Base Exp', pokemonA.base_experience ?? '—', pokemonB.base_experience ?? '—')}
-      </div>
-
-      {/* Abilities */}
-      <div className="compare-section">
-        <h3>Abilities</h3>
-        <div className="compare-row">
-          <div className="compare-cell cell-a abilities-cell">
-            {pokemonA.abilities?.map(a => (
-              <span key={a.ability.name} className="ability-tag">{a.ability.name.replace('-', ' ')}</span>
-            ))}
-          </div>
-          <div className="compare-label">Abilities</div>
-          <div className="compare-cell cell-b abilities-cell">
-            {pokemonB.abilities?.map(a => (
-              <span key={a.ability.name} className="ability-tag">{a.ability.name.replace('-', ' ')}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="compare-section">
-        <h3>Base Stats</h3>
-        <div className="compare-stats-header">
-          <div className="compare-stat-label">Stat</div>
-          <div className="compare-stat-cell cell-a">
-            <span className="stat-val">{totalStatsA}</span>
-            <div className="stat-bar-mini">
-              <div className="stat-fill-mini" style={{ width: `${getStatPercent(totalStatsA)}%`, backgroundColor: '#e94560' }} />
-            </div>
-          </div>
-          <div className="compare-stat-label">Total</div>
-          <div className="compare-stat-cell cell-b">
-            <span className="stat-val">{totalStatsB}</span>
-            <div className="stat-bar-mini">
-              <div className="stat-fill-mini" style={{ width: `${getStatPercent(totalStatsB)}%`, backgroundColor: '#e94560' }} />
-            </div>
-          </div>
-        </div>
-        {Array.from({ length: 6 }, (_, i) => renderStatRow(i))}
-      </div>
+      {renderTypesRow()}
+      {renderPhysicalSection()}
+      {renderAbilitiesSection()}
+      {renderStatsSection()}
     </div>
   );
 }

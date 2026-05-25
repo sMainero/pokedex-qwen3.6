@@ -5,24 +5,19 @@ import './PokemonList.css';
 function PokemonList({
   speciesList,
   onSelect,
-  onCompare,
-  compareSelected,
+  onCompareToggle,
+  compareSelectedIds,
   isCompareMode,
+  compareMaxReached,
 }: PokemonListProps) {
   const handleSelect = (species: GenerationPokemonSpecies) => {
     if (isCompareMode) {
-      onCompare?.(species);
+      onCompareToggle?.(species);
       return;
     }
     onSelect(species);
   };
 
-  const handleCompare = (e: React.MouseEvent, species: GenerationPokemonSpecies) => {
-    e.stopPropagation();
-    onCompare?.(species);
-  };
-
-  // Extract ID from URL like "https://pokeapi.co/api/v2/pokemon-species/1/"
   const getIdFromUrl = (url: string): number => {
     const match = url.match(/\/(\d+)\/?$/);
     return match ? parseInt(match[1], 10) : 0;
@@ -41,7 +36,9 @@ function PokemonList({
       <div className="pokemon-grid">
         {speciesList.map((species) => {
           const id = getIdFromUrl(species.url);
-          const isSelected = compareSelected?.has(id);
+          const isSelected = compareSelectedIds?.has(id);
+          const isMaxed = compareMaxReached && !isSelected;
+
           return (
             <div
               key={id}
@@ -74,11 +71,15 @@ function PokemonList({
               </div>
               {isCompareMode && (
                 <button
-                  className={`compare-select-btn${isSelected ? ' selected' : ''}`}
-                  onClick={(e) => handleCompare(e, species)}
+                  className={`compare-select-btn${isSelected ? ' selected' : ''}${isMaxed ? ' maxed' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCompareToggle?.(species);
+                  }}
+                  disabled={isMaxed}
                   aria-label={`${isSelected ? 'Remove' : 'Add'} ${species.name} to comparison`}
                 >
-                  {isSelected ? '✓ Selected' : '+ Compare'}
+                  {isSelected ? '✓ Selected' : isMaxed ? 'Max reached' : '+ Compare'}
                 </button>
               )}
             </div>
