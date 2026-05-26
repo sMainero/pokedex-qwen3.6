@@ -1,5 +1,6 @@
 
 import { PokemonDetailsProps } from '../types/components';
+import { getTypeMatchups } from '../types/pokemon';
 import './PokemonDetails.css';
 
 function PokemonDetails({ pokemon, onBack, isLoading }: PokemonDetailsProps & { isLoading?: boolean }) {
@@ -115,6 +116,58 @@ function PokemonDetails({ pokemon, onBack, isLoading }: PokemonDetailsProps & { 
                 <p className="stat-value">{stat.value}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="detail-card">
+          <h3>Matchups</h3>
+          <div className="matchups-container">
+            {pokemon.types && pokemon.types.length > 0 && (() => {
+              const matchups = getTypeMatchups(pokemon.types.map(t => t.type.name));
+              return (
+                <>
+                  {matchups.strongAgainst.length > 0 && (
+                    <div className="matchup-section">
+                      <span className="matchup-label matchup-strong">Strong Against</span>
+                      <div className="matchup-types">
+                        {matchups.strongAgainst.map(type => (
+                          <span key={type} className={`matchup-type type-${type}`}>
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {matchups.weakAgainst.length > 0 && (
+                    <div className="matchup-section">
+                      <span className="matchup-label matchup-weak">Weak Against</span>
+                      <div className="matchup-types">
+                        {matchups.weakAgainst.map(type => (
+                          <span key={type} className={`matchup-type type-${type}`}>
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {matchups.noEffect.length > 0 && (
+                    <div className="matchup-section">
+                      <span className="matchup-label matchup-immune">No Effect</span>
+                      <div className="matchup-types">
+                        {matchups.noEffect.map(type => (
+                          <span key={type} className={`matchup-type type-${type}`}>
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {matchups.strongAgainst.length === 0 && matchups.weakAgainst.length === 0 && matchups.noEffect.length === 0 && (
+                    <p className="no-matchups">No special matchups</p>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
