@@ -7,10 +7,12 @@ const mockSpeciesList: GenerationPokemonSpecies[] = [
   {
     name: 'bulbasaur',
     url: 'https://pokeapi.co/api/v2/pokemon-species/1/',
+    generation: 1,
   },
   {
     name: 'charmander',
     url: 'https://pokeapi.co/api/v2/pokemon-species/4/',
+    generation: 1,
   },
 ];
 

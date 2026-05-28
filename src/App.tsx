@@ -10,6 +10,8 @@ import './App.css';
 const COMPARE_MIN = 2;
 const COMPARE_MAX = 4;
 
+const ALL_GENERATIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
 const GEN_GRADIENTS: Record<number, string> = {
   1: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',  // Kanto: deep blue
   2: 'linear-gradient(135deg, #1a2e2e 0%, #0f3434 50%, #0a2a2a 100%)',  // Johto: dark teal
@@ -22,6 +24,10 @@ const GEN_GRADIENTS: Record<number, string> = {
   9: 'linear-gradient(135deg, #2e2e2e 0%, #2a2a2a 50%, #202020 100%)',  // Paldea: slate
 };
 
+const CACHE_KEY = 'pokedex-all-species';
+const CACHE_EXPIRY_KEY = 'pokedex-cache-timestamp';
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
 function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [allSpecies, setAllSpecies] = useState<GenerationPokemonSpecies[]>([]);
@@ -30,91 +36,123 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentGeneration, setCurrentGeneration] = useState(1);
+  const [selectedGenerations, setSelectedGenerations] = useState<number[]>(ALL_GENERATIONS);
+  const [allGenerationsLoaded, setAllGenerationsLoaded] = useState(false);
 
   // Comparison state
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelectedIds, setCompareSelectedIds] = useState<Set<number>>(new Set());
   const [compareSelected, setCompareSelected] = useState<Pokemon[]>([]);
   const [compareViewActive, setCompareViewActive] = useState(false);
-  const [pendingSpecies, setPendingSpecies] = useState<GenerationPokemonSpecies[] | null>(null);
 
-  // When loading starts, clear old data (defers to next render)
+  // Load from localStorage on mount
   useEffect(() => {
-    if (loading) {
-      setAllSpecies([]);
-      setFilteredSpecies([]);
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      const timestamp = localStorage.getItem(CACHE_EXPIRY_KEY);
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp, 10);
+        if (age < CACHE_TTL) {
+          const species: GenerationPokemonSpecies[] = JSON.parse(cached);
+          setAllSpecies(species);
+          setFilteredSpecies(species);
+          setAllGenerationsLoaded(true);
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // Ignore cache errors
     }
-  }, [loading]);
+    // No valid cache — fetch all generations
+    fetchAllGenerations();
+  }, []);
 
-  // When data arrives while loading, stage it
-  useEffect(() => {
-    if (pendingSpecies && loading) {
-      setAllSpecies(pendingSpecies);
-      setFilteredSpecies(pendingSpecies);
-      setPendingSpecies(null);
-      setLoading(false);
-    }
-  }, [pendingSpecies, loading]);
-
-  // Fetch only species list (no details)
-  const fetchGenerationSpecies = useCallback(async (generation: number) => {
+  // Fetch all 9 generations and merge
+  const fetchAllGenerations = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const genResponse = await fetch(
-        `https://pokeapi.co/api/v2/generation/${generation}`,
+      const results = await Promise.all(
+        ALL_GENERATIONS.map(async (genId) => {
+          const res = await fetch(`https://pokeapi.co/api/v2/generation/${genId}`);
+          if (!res.ok) throw new Error(`Failed to fetch generation ${genId}`);
+          const data: GenerationResponse = await res.json();
+          const speciesWithGen = data.pokemon_species.map(s => ({
+            ...s,
+            generation: genId,
+          }));
+          return speciesWithGen;
+        }),
       );
-      if (!genResponse.ok) throw new Error('Failed to fetch generation data');
 
-      const genData: GenerationResponse = await genResponse.json();
-      const species = genData.pokemon_species.sort((a, b) => {
+      const merged = results.flat().sort((a, b) => {
         const idA = parseInt(a.url.match(/\/(\d+)\//)?.[1] || '0', 10);
         const idB = parseInt(b.url.match(/\/(\d+)\//)?.[1] || '0', 10);
         return idA - idB;
       });
-      setPendingSpecies(species);
+
+      setAllSpecies(merged);
+      setFilteredSpecies(merged);
+      setAllGenerationsLoaded(true);
+
+      // Cache to localStorage
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(merged));
+        localStorage.setItem(CACHE_EXPIRY_KEY, Date.now().toString());
+      } catch {
+        // localStorage full or unavailable — ignore
+      }
     } catch (err: any) {
       setError(err.message);
+    } finally {
       setLoading(false);
     }
   }, []);
 
-  // Initial load - fetch gen 1
+  // Update background gradient based on selected generations
   useEffect(() => {
-    fetchGenerationSpecies(1);
-  }, [fetchGenerationSpecies]);
+    if (selectedGenerations.length === ALL_GENERATIONS.length) {
+      // All selected — use a gradient that blends multiple generations
+      document.body.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #2e1a1a 50%, #2e2e1a 75%, #1a2e1a 100%)';
+    } else {
+      // Use the first selected generation's gradient
+      const gradient = GEN_GRADIENTS[selectedGenerations[0]] || GEN_GRADIENTS[1];
+      document.body.style.background = gradient;
+    }
+  }, [selectedGenerations]);
 
-  // Update background gradient on gen change
-  useEffect(() => {
-    const gradient = GEN_GRADIENTS[currentGeneration] || GEN_GRADIENTS[1];
-    document.body.style.background = gradient;
-  }, [currentGeneration]);
-
-  // Handle generation change — preserve compare state for cross-gen
-  const handleGenerationChange = (generation: number) => {
-    if (generation === currentGeneration) return;
-    setCurrentGeneration(generation);
-    setSelectedPokemon(null);
-    setSearchTerm('');
-    // Do NOT clear compare state — cross-gen comparison
-    fetchGenerationSpecies(generation);
+  // Toggle a generation filter
+  const handleGenerationToggle = (generation: number) => {
+    setSelectedGenerations(prev => {
+      if (prev.includes(generation)) {
+        return prev.filter(g => g !== generation);
+      }
+      return [...prev, generation];
+    });
   };
 
-  // Search filtering
+  // Search + generation filtering
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredSpecies(allSpecies);
-    } else {
-      const filtered = allSpecies.filter(
+    let filtered = allSpecies;
+
+    // Apply generation filter
+    if (selectedGenerations.length < ALL_GENERATIONS.length) {
+      filtered = filtered.filter(s => selectedGenerations.includes(s.generation));
+    }
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(
         (species) =>
           species.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           species.url.match(/\/?(\d+)\//)?.[1]?.includes(searchTerm),
       );
-      setFilteredSpecies(filtered);
     }
-  }, [allSpecies, searchTerm]);
+
+    setFilteredSpecies(filtered);
+  }, [allSpecies, searchTerm, selectedGenerations]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -262,9 +300,10 @@ function App() {
       </header>
 
       <GenerationTabs
-        currentGeneration={currentGeneration}
-        onGenerationChange={handleGenerationChange}
+        selectedGenerations={selectedGenerations}
+        onGenerationToggle={handleGenerationToggle}
         isLoading={loading}
+        allGenerationsLoaded={allGenerationsLoaded}
       />
 
       {compareMode && (

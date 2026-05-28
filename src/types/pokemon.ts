@@ -12,6 +12,7 @@ export interface PokemonType {
 export interface GenerationPokemonSpecies {
   name: string;
   url: string;
+  generation: number;
 }
 
 export interface GenerationResponse {
@@ -43,9 +44,11 @@ export interface PokemonVersion {
 
 export interface PokemonSprite {
   front_default?: string;
+  front_shiny?: string;
   other?: {
     'official-artwork'?: {
       front_default?: string;
+      front_shiny?: string;
     };
   };
   versions?: {
@@ -64,9 +67,11 @@ export interface Pokemon {
   types: PokemonType[];
   sprites?: {
     front_default?: string;
+    front_shiny?: string;
     other?: {
       'official-artwork'?: {
         front_default?: string;
+        front_shiny?: string;
       };
     };
   };

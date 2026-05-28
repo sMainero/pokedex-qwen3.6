@@ -1,7 +1,8 @@
 interface GenerationTabsProps {
-  currentGeneration: number;
-  onGenerationChange: (generation: number) => void;
+  selectedGenerations: number[];
+  onGenerationToggle: (generation: number) => void;
   isLoading: boolean;
+  allGenerationsLoaded: boolean;
 }
 
 const GENERATIONS = [
@@ -17,26 +18,57 @@ const GENERATIONS = [
 ];
 
 function GenerationTabs({
-  currentGeneration,
-  onGenerationChange,
+  selectedGenerations,
+  onGenerationToggle,
   isLoading,
+  allGenerationsLoaded,
 }: GenerationTabsProps) {
+  const allSelected = allGenerationsLoaded && selectedGenerations.length === GENERATIONS.length;
+
+  const toggleAll = () => {
+    if (allSelected) {
+      // Deselect all
+      GENERATIONS.forEach(gen => onGenerationToggle(gen.id));
+    } else {
+      // Select all
+      GENERATIONS.forEach(gen => {
+        if (!selectedGenerations.includes(gen.id)) {
+          onGenerationToggle(gen.id);
+        }
+      });
+    }
+  };
+
   return (
-    <nav className="generation-tabs" aria-label="Select Pokémon generation">
+    <nav className="generation-tabs" aria-label="Filter by Pokémon generation">
       <ul>
-        {GENERATIONS.map((gen) => (
-          <li key={gen.id}>
-            <button
-              className={`gen-tab ${currentGeneration === gen.id ? 'active' : ''}`}
-              onClick={() => onGenerationChange(gen.id)}
-              disabled={isLoading}
-              aria-pressed={currentGeneration === gen.id}
-              aria-label={`Generation ${gen.id}: ${gen.count} Pokémon`}
-            >
-              {gen.label}
-            </button>
-          </li>
-        ))}
+        <li>
+          <button
+            className={`gen-tab ${allSelected ? 'active' : ''}`}
+            onClick={toggleAll}
+            disabled={isLoading}
+            aria-pressed={allSelected}
+            aria-label={allSelected ? 'Deselect all generations' : 'Select all generations'}
+          >
+            All
+          </button>
+        </li>
+        {GENERATIONS.map((gen) => {
+          const isSelected = selectedGenerations.includes(gen.id);
+          return (
+            <li key={gen.id}>
+              <button
+                className={`gen-tab ${isSelected ? 'active' : ''}`}
+                onClick={() => onGenerationToggle(gen.id)}
+                disabled={isLoading}
+                aria-pressed={isSelected}
+                aria-label={`Generation ${gen.id}: ${gen.count} Pokémon`}
+              >
+                {gen.label}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );

@@ -595,6 +595,211 @@
   color: #e0e0e0;
 }
 
+/* Shiny toggle container */
+.shiny-toggle-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+/* Shiny toggle button */
+.shiny-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #a0a0a0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.shiny-toggle-btn:hover {
+  background: rgba(233, 69, 96, 0.2);
+  color: #fff;
+  border-color: #e94560;
+}
+
+.shiny-toggle-btn[aria-pressed="true"] {
+  background: #e94560;
+  color: #fff;
+  border-color: #e94560;
+}
+
+/* Compare mode styles */
+.compare-toggle-btn {
+  padding: 8px 18px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #a0a0a0;
+  border: 2px solid transparent;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  font-weight: 600;
+  position: relative;
+}
+
+.compare-toggle-btn:hover:not(:disabled) {
+  background: rgba(233, 69, 96, 0.2);
+  color: #fff;
+  border-color: #e94560;
+}
+
+.compare-toggle-btn.active {
+  background: #e94560;
+  color: #fff;
+  border-color: #e94560;
+}
+
+.compare-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.compare-toggle-btn .badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff6b6b;
+  color: #fff;
+  font-size: 0.7rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compare-mode-bar {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.compare-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1;
+}
+
+.compare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.compare-chip-sprite {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.compare-chip-remove {
+  background: none;
+  border: none;
+  color: #e94560;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.compare-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.compare-actions p {
+  color: #a0a0a0;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.start-compare-btn {
+  padding: 8px 20px;
+  background: #43e97b;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-compare-btn:hover:not(:disabled) {
+  background: #38d96e;
+  transform: translateY(-2px);
+}
+
+.start-compare-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.stop-selecting-btn {
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #a0a0a0;
+  border: 2px solid transparent;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stop-selecting-btn:hover {
+  background: rgba(233, 69, 96, 0.2);
+  color: #fff;
+  border-color: #e94560;
+}
+
+.compare-select-btn {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 2px solid #e94560;
+  background: transparent;
+  color: #e94560;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.compare-select-btn:hover:not(:disabled) {
+  background: #e94560;
+  color: #fff;
+}
+
+.compare-select-btn.selected {
+  background: #43e97b;
+  border-color: #43e97b;
+  color: #1a1a2e;
+}
+
+.compare-select-btn.maxed {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ClashOverlay styles */
 .clash-overlay {
   position: fixed;

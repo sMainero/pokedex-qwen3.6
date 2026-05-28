@@ -1,9 +1,11 @@
 
+import { useState } from 'react';
 import { PokemonDetailsProps } from '../types/components';
 import { getTypeMatchups } from '../types/pokemon';
 import './PokemonDetails.css';
 
 function PokemonDetails({ pokemon, onBack, isLoading }: PokemonDetailsProps & { isLoading?: boolean }) {
+  const [isShiny, setIsShiny] = useState(false);
   const getStatBar = (value: number, max = 255) => {
     const percentage = Math.min((value / max) * 100, 100);
     return { percentage, color: getColorForStat(value) };
@@ -46,13 +48,32 @@ function PokemonDetails({ pokemon, onBack, isLoading }: PokemonDetailsProps & { 
 
       <div className="pokemon-image-large">
         <img
-          src={pokemon.sprites?.other?.['official-artwork']?.front_default || pokemon.sprites?.front_default || '/images/pokemon-placeholder.png'}
+          src={isShiny
+            ? (pokemon.sprites?.other?.['official-artwork'] as any)?.[`front_shiny`] ||
+              pokemon.sprites?.front_shiny ||
+              (pokemon.sprites?.other?.['official-artwork'] as any)?.front_default ||
+              pokemon.sprites?.front_default ||
+              '/images/pokemon-placeholder.png'
+            : (pokemon.sprites?.other?.['official-artwork'] as any)?.front_default ||
+              pokemon.sprites?.front_default ||
+              '/images/pokemon-placeholder.png'}
           alt={pokemon.name}
           style={{ width: '250px', height: '250px' }}
           onError={(e) => {
             (e.target as HTMLImageElement).src = '/images/pokemon-placeholder.png';
           }}
         />
+      </div>
+
+      <div className="shiny-toggle-container">
+        <button
+          className="shiny-toggle-btn"
+          onClick={() => setIsShiny(!isShiny)}
+          aria-pressed={isShiny}
+          aria-label={isShiny ? 'Show normal form' : 'Show shiny form'}
+        >
+          ✨ {isShiny ? 'Normal' : 'Shiny'}
+        </button>
       </div>
 
       <div className="details-grid">
