@@ -11,6 +11,24 @@ interface PokemonCompareProps {
 
 function PokemonCompare({ pokemonList, onRemove, onBack }: PokemonCompareProps) {
   const [showClash, setShowClash] = useState(true);
+  const [shinyStates, setShinyStates] = useState<Record<number, boolean>>({});
+
+  const toggleShiny = (id: number) => {
+    setShinyStates(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const getSpriteUrl = (pokemon: Pokemon, shiny: boolean) => {
+    if (shiny) {
+      return pokemon.sprites?.other?.['official-artwork']?.front_shiny
+        || pokemon.sprites?.front_shiny
+        || pokemon.sprites?.other?.['official-artwork']?.front_default
+        || pokemon.sprites?.front_default
+        || '/images/pokemon-placeholder.png';
+    }
+    return pokemon.sprites?.other?.['official-artwork']?.front_default
+      || pokemon.sprites?.front_default
+      || '/images/pokemon-placeholder.png';
+  };
 
   const handleClashComplete = () => {
     setShowClash(false);
@@ -35,32 +53,45 @@ function PokemonCompare({ pokemonList, onRemove, onBack }: PokemonCompareProps) 
   // Find max for numeric comparison
   const getMaxNumber = (values: number[]) => Math.max(...values);
 
-  const renderSprite = (pokemon: Pokemon) => (
+  const renderSprite = (pokemon: Pokemon, shiny: boolean) => (
     <div className="compare-sprite">
       <img
-        src={pokemon.sprites?.other?.['official-artwork']?.front_default || pokemon.sprites?.front_default || '/images/pokemon-placeholder.png'}
+        src={getSpriteUrl(pokemon, shiny)}
         alt={pokemon.name}
         onError={(e) => { (e.target as HTMLImageElement).src = '/images/pokemon-placeholder.png'; }}
       />
     </div>
   );
 
-  const renderCompareColumn = (pokemon: Pokemon) => (
-    <div className="compare-column">
-      {renderSprite(pokemon)}
-      <h3>
-        {pokemon.name.toUpperCase()}{' '}
-        <span className="compare-id">#{pokemon.id.toString().padStart(3, '0')}</span>
-      </h3>
-      <button
-        className="remove-btn"
-        onClick={() => onRemove(pokemon)}
-        aria-label={`Remove ${pokemon.name}`}
-      >
-        ✕ Remove
-      </button>
-    </div>
-  );
+  const renderCompareColumn = (pokemon: Pokemon) => {
+    const isShiny = shinyStates[pokemon.id] || false;
+    return (
+      <div className="compare-column">
+        {renderSprite(pokemon, isShiny)}
+        <h3>
+          {pokemon.name.toUpperCase()}{' '}
+          <span className="compare-id">#{pokemon.id.toString().padStart(3, '0')}</span>
+        </h3>
+        <div className="compare-column-actions">
+          <button
+            className="shiny-toggle-btn"
+            onClick={() => toggleShiny(pokemon.id)}
+            aria-pressed={isShiny}
+            aria-label={isShiny ? 'Show normal form' : 'Show shiny form'}
+          >
+            ✨ {isShiny ? 'Normal' : 'Shiny'}
+          </button>
+          <button
+            className="remove-btn"
+            onClick={() => onRemove(pokemon)}
+            aria-label={`Remove ${pokemon.name}`}
+          >
+            ✕ Remove
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   const renderVsSeparator = () => <div className="compare-vs">VS</div>;
 

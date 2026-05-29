@@ -80,6 +80,39 @@
   border-color: #e94560;
 }
 
+/* Column action buttons */
+.compare-column-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Shiny toggle in compare columns */
+.compare-column .shiny-toggle-btn {
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #a0a0a0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.compare-column .shiny-toggle-btn:hover {
+  background: rgba(233, 69, 96, 0.2);
+  color: #fff;
+  border-color: #e94560;
+}
+
+.compare-column .shiny-toggle-btn[aria-pressed="true"] {
+  background: #e94560;
+  color: #fff;
+  border-color: #e94560;
+}
+
 /* Sections */
 .compare-section {
   margin-bottom: 30px;
