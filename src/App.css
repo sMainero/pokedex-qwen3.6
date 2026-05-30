@@ -264,6 +264,13 @@
   font-size: 0.9rem;
 }
 
+.pokemon-generation {
+  display: block;
+  color: #888;
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
 .pokemon-type {
   display: inline-block;
   padding: 5px 15px;
@@ -485,37 +492,6 @@
   border-radius: 8px;
   margin: 0 auto;
   display: block;
-}
-
-/* Cross-fade layers */
-.grid-container {
-  position: relative;
-  min-height: 300px;
-}
-
-.grid-layer {
-  transition: opacity 0.3s ease;
-}
-
-.grid-layer.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.grid-layer.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.skeleton-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-}
-
-.list-layer {
-  position: relative;
 }
 
 @keyframes skeleton-loading {

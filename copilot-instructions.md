@@ -1,6 +1,6 @@
 # copilot-instructions.md — Pokedex React App
 
-> **MANDATORY SYNC RULE:** This file and `AGENTS.md` are mirrors. Any agent that modifies one MUST update the other identically. Keep them in sync on every change. If you edit code, architecture, commands, patterns, or any section below — update both files.
+> **MANDATORY SYNC RULE:** This file and `copilot-instructions.md` are mirrors. Any agent that modifies one MUST update the other identically. Keep them in sync on every change. If you edit code, architecture, commands, patterns, or any section below — update both files.
 
 ---
 
@@ -27,8 +27,8 @@ A Pokémon encyclopedia built with React 18 + TypeScript + Vite. Fetches data fr
 
 ```
 src/
-├── index.tsx                  # Entry point, wraps App in ErrorBoundary
-├── App.tsx                    # Root component: generation tabs, search, pokemon list
+├── index.tsx                  # Entry point, wraps App in ErrorBoundary + PokemonProvider
+├── App.tsx                    # Root component: generation tabs, search, pokemon list, infinite scroll
 ├── App.css                    # All styles (consolidated, single source of truth)
 ├── index.css                  # Global resets
 ├── types/
@@ -37,7 +37,11 @@ src/
 │   └── components.ts          # Shared component prop types
 ├── hooks/
 │   ├── usePokemonData.ts      # Data fetching + search filtering (unused)
-│   └── useInfiniteScroll.ts   # IntersectionObserver-based infinite scroll hook (unused)
+│   ├── useInfiniteScroll.ts   # IntersectionObserver-based infinite scroll hook (unused)
+│   ├── useInfinitePagination.ts # 25-item chunk loading with IntersectionObserver trigger
+│   └── useSearchFilter.ts     # Search filtering within context data
+├── contexts/
+│   └── PokemonContext.tsx     # React context for all species data (localStorage cache + API fetch)
 └── components/
     ├── PokemonList.tsx        # Grid of Pokémon cards (lazy-loaded images, compare toggle)
     ├── PokemonDetails.tsx     # Detail view with stats, types, abilities
@@ -55,13 +59,13 @@ src/
 ### Data Fetching
 - **Generation endpoint:** `https://pokeapi.co/api/v2/generation/{1-9}` — returns `pokemon_species[]` with species name/URL
 - **Pokemon detail endpoint:** `https://pokeapi.co/api/v2/pokemon/{speciesName}` — fetches full pokemon data
-- **Batch fetching:** Pokemon fetched in batches of 20 to avoid API overload
-- **No pagination:** All species in selected generation fetched and displayed at once
+- **Context caching:** `PokemonContext` fetches all generations on mount, caches to localStorage (24h TTL)
+- **Infinite pagination:** `useInfinitePagination` loads 25 items at a time via IntersectionObserver
 - **Image fallback:** All `<img>` tags have `onError` handler pointing to `/images/pokemon-placeholder.png`
 - **Legacy:** `useInfiniteScroll`, `LoadingMore`, and `pagination.ts` remain in codebase but unused
 
 ### Styling
-- **All CSS lives in `src/App.css`** — component-level `.css` files exist as placeholders only
+- **App-level CSS:** `src/App.css` — global styles, type gradients, skeleton animation, dark theme
 - Type-specific gradient classes: `.type-fire`, `.type-water`, `.type-grass`, etc.
 - Skeleton loading animation via CSS `@keyframes skeleton-loading`
 - Dark theme with gradient backgrounds
@@ -99,6 +103,7 @@ src/
 ### `PokemonList.tsx`
 - **Props:** `speciesList`, `onSelect`, `onCompareToggle`, `compareSelectedIds`, `isCompareMode`, `compareMaxReached`
 - Renders grid of clickable cards with lazy-loaded sprites
+- Pagination handled by parent via `useInfinitePagination` (25 items per chunk)
 - In compare mode: shows "+ Compare" / "✓ Selected" button per card, disabled at 4 max
 - Keyboard accessible (Enter/Space to select)
 
@@ -122,11 +127,17 @@ src/
 - Types, abilities, physical attributes shown per column
 - Individual remove button per Pokémon; below 2 exits comparison view
 
+### `useInfinitePagination.ts` (Active)
+- **Returns:** `{ visibleItems, hasMore, loadMoreRef }`
+- Uses `IntersectionObserver` with 200px rootMargin to trigger loading
+- Loads 25 items per chunk, resets on search/filter change
+- `loadMoreRef` attached to sentinel element below grid
+
 ### `useInfiniteScroll.ts` (Legacy)
 - **Returns:** `ref` to attach to scroll container
 - **Options:** `threshold`, `rootMargin`, `onScrollToBottom` callback
 - Uses `IntersectionObserver` internally
-- **Note:** No longer used by App.tsx
+- **Note:** Unused
 
 ### `usePokemonData.ts` (Legacy)
 - **Returns:** `{ allPokemon, filteredPokemon, loading, error, setSearchTerm, reset }`

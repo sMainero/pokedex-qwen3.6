@@ -1,6 +1,5 @@
 import { PokemonListProps } from '../types/components';
 import { GenerationPokemonSpecies } from '../types/pokemon';
-import './PokemonList.css';
 
 function PokemonList({
   speciesList,
@@ -32,61 +31,60 @@ function PokemonList({
   }
 
   return (
-    <>
-      <div className="pokemon-grid">
-        {speciesList.map((species) => {
-          const id = getIdFromUrl(species.url);
-          const isSelected = compareSelectedIds?.has(id);
-          const isMaxed = compareMaxReached && !isSelected;
+    <div className="pokemon-grid">
+      {speciesList.map((species) => {
+        const id = getIdFromUrl(species.url);
+        const isSelected = compareSelectedIds?.has(id);
+        const isMaxed = compareMaxReached && !isSelected;
 
-          return (
-            <div
-              key={id}
-              className={`pokemon-card${isSelected ? ' compare-selected' : ''}`}
-              onClick={() => handleSelect(species)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  handleSelect(species);
-                }
+        return (
+          <div
+            key={id}
+            className={`pokemon-card${isSelected ? ' compare-selected' : ''}`}
+            onClick={() => handleSelect(species)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleSelect(species);
+              }
+            }}
+            aria-label={`View details for ${species.name} (ID: ${id})`}
+          >
+            <img
+              src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`}
+              alt={species.name}
+              className="pokemon-image"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  '/images/pokemon-placeholder.png';
               }}
-              aria-label={`View details for ${species.name} (ID: ${id})`}
-            >
-              <img
-                src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`}
-                alt={species.name}
-                className="pokemon-image"
-                loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    '/images/pokemon-placeholder.png';
-                }}
-              />
-              <div className="pokemon-name">
-                {species.name}
-                <span className="pokemon-id">
-                  #{id.toString().padStart(3, '0')}
-                </span>
-              </div>
-              {isCompareMode && (
-                <button
-                  className={`compare-select-btn${isSelected ? ' selected' : ''}${isMaxed ? ' maxed' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCompareToggle?.(species);
-                  }}
-                  disabled={isMaxed}
-                  aria-label={`${isSelected ? 'Remove' : 'Add'} ${species.name} to comparison`}
-                >
-                  {isSelected ? '✓ Selected' : isMaxed ? 'Max reached' : '+ Compare'}
-                </button>
-              )}
+            />
+            <div className="pokemon-name">
+              {species.name}
+              <span className="pokemon-id">
+                #{id.toString().padStart(3, '0')}
+              </span>
+              <span className="pokemon-generation">Gen {species.generation}</span>
             </div>
-          );
-        })}
-      </div>
-    </>
+            {isCompareMode && (
+              <button
+                className={`compare-select-btn${isSelected ? ' selected' : ''}${isMaxed ? ' maxed' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCompareToggle?.(species);
+                }}
+                disabled={isMaxed}
+                aria-label={`${isSelected ? 'Remove' : 'Add'} ${species.name} to comparison`}
+              >
+                {isSelected ? '✓ Selected' : isMaxed ? 'Max reached' : '+ Compare'}
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@ export interface PokemonListProps {
   compareSelectedIds?: Set<number>;
   isCompareMode?: boolean;
   compareMaxReached?: boolean;
+  visibleIndices?: number[];
 }
 
 export interface PokemonDetailsProps {
